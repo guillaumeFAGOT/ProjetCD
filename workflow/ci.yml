@@ -1,0 +1,178 @@
+# Déclenchement du workflow
+
+on:
+
+  push:
+
+    branches: [ main, develop, release ]
+
+  pull_request:
+
+    branches: [ main, develop ]
+
+
+
+env:
+
+  PYTHON_VERSION: 3.11
+
+
+
+jobs:
+
+
+
+  # --------------------
+
+  # JOB CI : Build et tests DEV
+
+  # --------------------
+
+  ci-dev:
+
+    runs-on: ubuntu-latest
+
+    name: CI - DEV
+
+    steps:
+
+      - name: Checkout code
+
+        uses: actions/checkout@v3
+
+
+
+      - name: Setup Python
+
+        uses: actions/setup-python@v5
+
+        with:
+
+          python-version: ${{ env.PYTHON_VERSION }}
+
+
+
+      - name: Install dependencies
+
+        run: pip install -r requirements.txt
+
+
+
+      - name: Run unit tests
+
+        run: pytest tests/ --maxfail=1 --disable-warnings
+
+
+
+  # --------------------
+
+  # JOB CD : Déploiement sur TEST
+
+  # --------------------
+
+  deploy-test:
+
+    runs-on: ubuntu-latest
+
+    needs: ci-dev
+
+    if: github.ref == 'refs/heads/release'  # Se lance seulement sur release
+
+    name: Deploy - TEST
+
+    steps:
+
+      - name: Checkout code
+
+        uses: actions/checkout@v3
+
+
+
+      - name: Setup Python
+
+        uses: actions/setup-python@v5
+
+        with:
+
+          python-version: ${{ env.PYTHON_VERSION }}
+
+
+
+      - name: Install dependencies
+
+        run: pip install -r requirements.txt
+
+
+
+      - name: Deploy to TEST
+
+        run: |
+
+          echo "Déploiement vers TEST"
+
+          # Exemple de commande pour déployer
+
+          python scripts/deploy.py --env test
+
+        env:
+
+          TEST_DB_URL: ${{ secrets.TEST_DB_URL }}
+
+          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+
+
+
+  # --------------------
+
+  # JOB CD : Déploiement sur PROD
+
+  # --------------------
+
+  deploy-prod:
+
+    runs-on: ubuntu-latest
+
+    needs: deploy-test
+
+    if: github.ref == 'refs/heads/release'  # Se lance seulement sur release
+
+    name: Deploy - PROD
+
+    steps:
+
+      - name: Checkout code
+
+        uses: actions/checkout@v3
+
+
+
+      - name: Setup Python
+
+        uses: actions/setup-python@v5
+
+        with:
+
+          python-version: ${{ env.PYTHON_VERSION }}
+
+
+
+      - name: Install dependencies
+
+        run: pip install -r requirements.txt
+
+
+
+      - name: Deploy to PROD
+
+        run: |
+
+          echo "Déploiement vers PROD"
+
+          python scripts/deploy.py --env prod
+
+        env:
+
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+
+          PROD_API_KEY: ${{ secrets.PROD_API_KEY }}
+
