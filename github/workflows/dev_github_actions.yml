@@ -3,7 +3,7 @@ name: Test GitHub Actions
 
 # Déclenchement du workflow
 on:
-  push:             # à chaque push sur n'importe quelle branche
+  workflow_dispatch:           # à chaque push sur n'importe quelle branche
   pull_request:     # à chaque pull request
 
 jobs:
